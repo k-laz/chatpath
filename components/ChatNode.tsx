@@ -1,0 +1,188 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { Handle, Position, NodeProps } from "@xyflow/react";
+import { motion } from "framer-motion";
+import { ConversationNode } from "@/types/conversation";
+import { MessageBubble } from "./MessageBubble";
+import { useConversationTree } from "@/hooks/useConversationTree";
+import { useBranchContext } from "@/hooks/useBranchContext";
+
+interface ChatNodeData {
+  node: ConversationNode;
+}
+
+export function ChatNode({
+  data,
+  selected,
+}: {
+  data: ChatNodeData;
+  selected?: boolean;
+}) {
+  const { node } = data;
+  const [inputValue, setInputValue] = useState("");
+  const [isExpanded, setIsExpanded] = useState(true);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+
+  const { addMessage, setActiveNode, activeNodeId } = useConversationTree();
+  const { getBranchingContext } = useBranchContext();
+
+  const isActive = activeNodeId === node.id;
+
+  useEffect(() => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }
+  }, [node.messages.length]);
+
+  const handleSendMessage = () => {
+    if (!inputValue.trim()) return;
+
+    addMessage(node.id, inputValue.trim(), "user");
+
+    setTimeout(() => {
+      const responses = [
+        "That's an interesting perspective! Can you tell me more about what led you to that conclusion?",
+        "I see what you're getting at. How do you think this relates to what we discussed earlier?",
+        "That's a great point. What would you say are the main implications of this?",
+        "Fascinating! I'd love to explore this further. What aspects would you like to dive deeper into?",
+        "You raise a compelling question. Let me think about the different angles we could consider...",
+      ];
+
+      const randomResponse =
+        responses[Math.floor(Math.random() * responses.length)];
+      addMessage(node.id, randomResponse, "assistant");
+    }, 1000);
+
+    setInputValue("");
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleFocus = () => {
+    if (activeNodeId !== node.id) {
+      setActiveNode(node.id);
+    }
+  };
+
+  const contextDisplay =
+    node.context.length > 0 ? (
+      <div className="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-900 rounded mb-2">
+        <div className="font-semibold mb-1">Context:</div>
+        <div className="max-h-20 overflow-y-auto">
+          {node.context.slice(-3).map((ctx: string, idx: number) => (
+            <div key={idx} className="truncate">
+              {ctx}
+            </div>
+          ))}
+          {node.context.length > 3 && (
+            <div className="text-gray-400">
+              ...and {node.context.length - 3} more
+            </div>
+          )}
+        </div>
+      </div>
+    ) : null;
+
+  return (
+    <>
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!bg-blue-500 !w-3 !h-3"
+      />
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`bg-white dark:bg-gray-800 border-2 rounded-lg shadow-lg min-w-[400px] max-w-[500px] ${
+          selected ? "border-blue-500" : "border-gray-200 dark:border-gray-700"
+        } ${isActive ? "ring-2 ring-blue-300" : ""}`}
+      >
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  isActive ? "bg-green-500" : "bg-gray-400"
+                }`}
+              />
+              <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                Conversation {node.id.slice(0, 8)}
+              </h3>
+            </div>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              {isExpanded ? "−" : "+"}
+            </button>
+          </div>
+
+          {isExpanded && (
+            <>
+              {contextDisplay}
+
+              <div
+                ref={messagesRef}
+                className="h-64 overflow-y-auto mb-4 pr-2 custom-scrollbar"
+              >
+                {node.messages.map((message) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    nodeId={node.id}
+                    onBranchClick={(branchPoint) => {
+                      setActiveNode(branchPoint.childNodeId);
+                    }}
+                  />
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  onFocus={handleFocus}
+                  placeholder={
+                    node.messages.length === 2 &&
+                    node.messages[0].content.includes("Welcome to ChatPath")
+                      ? "Ask me anything to get started! Try: 'What is machine learning?' or 'Help me plan a project'"
+                      : `Type your message...${
+                          node.context.length > 0
+                            ? " (continuing from branch)"
+                            : ""
+                        }`
+                  }
+                  className="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded text-sm resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  rows={2}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim()}
+                  className="px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Send
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </motion.div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!bg-blue-500 !w-3 !h-3"
+      />
+    </>
+  );
+}

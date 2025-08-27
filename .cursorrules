@@ -1,0 +1,128 @@
+# Cursor Rules for Conversational Tree Interface
+
+## Development Commands
+- Development server: `npm run dev` (Next.js with Turbopack on http://localhost:3000)
+- Build: `npm run build` (production build with Turbopack optimization)
+- Production server: `npm start` (runs after build)
+
+## Project Context
+You are working on a conversational tree interface application - think "Git branching for conversations". Users can select any text portion within chat messages to create visual conversation branches while preserving full context. This creates an interactive node-based graph for knowledge exploration.
+
+## Core Architecture
+- **Framework**: Next.js 15.5.0 with App Router pattern
+- **React**: 19.1.0 with concurrent rendering
+- **Styling**: Tailwind CSS v4 + PostCSS
+- **Build**: Turbopack for dev and production
+- **Fonts**: Geist Sans/Mono via next/font/google
+
+## Project Structure
+```
+app/
+├── layout.tsx          # Root layout with fonts and global styling
+├── page.tsx           # Main conversational tree interface
+└── globals.css        # Global CSS with Tailwind + CSS variables
+
+components/
+├── ConversationTree.tsx    # Main React Flow canvas
+├── ChatNode.tsx           # Custom node with chat interface
+├── MessageBubble.tsx      # Individual messages with text selection
+├── BranchButton.tsx       # Floating button for branch creation
+└── TextHighlight.tsx      # Previously branched text highlighting
+
+hooks/
+├── useTextSelection.ts     # Browser Selection API handling
+├── useConversationTree.ts  # Tree state and branching logic
+└── useBranchContext.ts    # Context inheritance between branches
+
+store/
+├── ConversationContext.tsx # React Context for tree state
+└── SelectionContext.tsx   # Context for text selection/branching
+
+types/
+├── conversation.ts        # Messages, branches, tree interfaces
+└── selection.ts          # Text selection and branching types
+```
+
+## Key Libraries & APIs
+- **React Flow**: Canvas-based node visualization
+- **React Context**: Native state management
+- **Framer Motion**: Branch creation animations
+- **Floating UI**: Branch button positioning
+- **Selection API**: Native browser text selection
+- **Intersection Observer**: Optimized large tree rendering
+- **ResizeObserver**: Responsive node sizing
+
+## Core Data Structure
+```typescript
+interface ConversationNode {
+  id: string;
+  parentId: string | null;
+  position: { x: number; y: number };
+  messages: Message[];
+  branches: BranchPoint[];
+  context: string[];     // Inherited conversation history
+  createdAt: Date;
+  isActive: boolean;
+}
+
+interface BranchPoint {
+  id: string;
+  messageId: string;
+  selectedText: string;
+  startOffset: number;
+  endOffset: number;
+  childNodeId: string;
+  createdAt: Date;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  role: "user" | "assistant";
+  timestamp: Date;
+  branchPoints: BranchPoint[];
+}
+```
+
+## Implementation Guidelines
+
+### Text Selection System
+- Use native Selection API for precise character offsets
+- Show floating branch button on text selection (Floating UI positioning)
+- Highlight selected text and track for navigation
+- Previously branched text gets blue highlight backgrounds
+
+### Branch Creation & Navigation
+- New branches inherit full conversation history to branching point
+- Show "Continuing from: [selected text]" prefix for context
+- Small indicator dots mark branching points in messages
+- Click highlights to navigate to associated branches
+
+### Canvas & Performance
+- React Flow handles zoom, pan, node positioning
+- Use virtualization for large conversation trees
+- Lazy load messages as nodes come into view
+- Save to localStorage with debounced updates
+- Collapse inactive branches to reduce render overhead
+
+## Development Best Practices
+- Each conversation node = separate React component for optimal re-rendering
+- Manage text selection through React Context + useReducer
+- Handle branch creation via immutable state updates
+- Debounce user interactions to prevent performance issues
+- Split context providers by concern (conversation vs selection)
+- Use CSS transforms for Framer Motion animations (optimal performance)
+- Follow Next.js App Router conventions with file-based routing
+
+## Styling Standards
+- Tailwind CSS v4 with custom CSS variables for theming
+- Support automatic light/dark mode switching
+- Custom node styling integrates with React Flow
+- Use concurrent React features for smooth canvas interactions
+
+## Code Quality
+- Use TypeScript interfaces for all data structures
+- Implement proper error boundaries for React Flow components
+- Handle edge cases in text selection (empty selections, cross-element selections)
+- Ensure accessibility with proper ARIA labels for tree navigation
+- Write unit tests for branching logic and state management

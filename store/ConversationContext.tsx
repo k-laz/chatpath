@@ -1,0 +1,208 @@
+"use client";
+
+import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import {
+  ConversationNode,
+  ConversationTree,
+  ConversationEdge,
+  Message,
+  BranchPoint,
+} from "@/types/conversation";
+import { BranchCreationData } from "@/types/selection";
+import { v4 as uuidv4 } from "uuid";
+
+interface ConversationState {
+  tree: ConversationTree;
+  activeNodeId: string | null;
+  isLoading: boolean;
+}
+
+type ConversationAction =
+  | { type: "SET_TREE"; payload: ConversationTree }
+  | { type: "SET_ACTIVE_NODE"; payload: string }
+  | {
+      type: "ADD_MESSAGE";
+      payload: {
+        nodeId: string;
+        message: Omit<Message, "id" | "timestamp" | "branchPoints">;
+      };
+    }
+  | { type: "CREATE_BRANCH"; payload: BranchCreationData }
+  | {
+      type: "UPDATE_NODE_POSITION";
+      payload: { nodeId: string; position: { x: number; y: number } };
+    }
+  | { type: "SET_LOADING"; payload: boolean };
+
+const initialState: ConversationState = {
+  tree: {
+    nodes: [],
+    edges: [],
+    rootNodeId: "",
+  },
+  activeNodeId: null,
+  isLoading: false,
+};
+
+function conversationReducer(
+  state: ConversationState,
+  action: ConversationAction
+): ConversationState {
+  switch (action.type) {
+    case "SET_TREE":
+      return {
+        ...state,
+        tree: action.payload,
+        activeNodeId: action.payload.rootNodeId,
+      };
+
+    case "SET_ACTIVE_NODE":
+      return {
+        ...state,
+        activeNodeId: action.payload,
+      };
+
+    case "ADD_MESSAGE": {
+      const { nodeId, message } = action.payload;
+      const newMessage: Message = {
+        ...message,
+        id: uuidv4(),
+        timestamp: new Date(),
+        branchPoints: [],
+      };
+
+      const updatedNodes = state.tree.nodes.map((node) =>
+        node.id === nodeId
+          ? { ...node, messages: [...node.messages, newMessage] }
+          : node
+      );
+
+      return {
+        ...state,
+        tree: {
+          ...state.tree,
+          nodes: updatedNodes,
+        },
+      };
+    }
+
+    case "CREATE_BRANCH": {
+      const { selection, newBranchId, parentNodeId, position } = action.payload;
+
+      const parentNode = state.tree.nodes.find((n) => n.id === parentNodeId);
+      if (!parentNode) return state;
+
+      const branchPoint: BranchPoint = {
+        id: uuidv4(),
+        messageId: selection.messageId,
+        selectedText: selection.text,
+        startOffset: selection.startOffset,
+        endOffset: selection.endOffset,
+        childNodeId: newBranchId,
+        createdAt: new Date(),
+      };
+
+      const contextMessages = parentNode.messages.slice(
+        0,
+        parentNode.messages.findIndex((m) => m.id === selection.messageId) + 1
+      );
+
+      const newNode: ConversationNode = {
+        id: newBranchId,
+        parentId: parentNodeId,
+        position,
+        messages: [],
+        branches: [],
+        context: contextMessages.map((m) => `${m.role}: ${m.content}`),
+        createdAt: new Date(),
+        isActive: false,
+      };
+
+      const newEdge: ConversationEdge = {
+        id: `edge-${parentNodeId}-${newBranchId}`,
+        source: parentNodeId,
+        target: newBranchId,
+        label:
+          selection.text.slice(0, 50) +
+          (selection.text.length > 50 ? "..." : ""),
+        data: {
+          selectedText: selection.text,
+          branchPoint,
+        },
+      };
+
+      const updatedNodes = state.tree.nodes.map((node) =>
+        node.id === parentNodeId
+          ? {
+              ...node,
+              messages: node.messages.map((msg) =>
+                msg.id === selection.messageId
+                  ? { ...msg, branchPoints: [...msg.branchPoints, branchPoint] }
+                  : msg
+              ),
+              branches: [...node.branches, branchPoint],
+            }
+          : node
+      );
+
+      return {
+        ...state,
+        tree: {
+          ...state.tree,
+          nodes: [...updatedNodes, newNode],
+          edges: [...state.tree.edges, newEdge],
+        },
+        activeNodeId: newBranchId,
+      };
+    }
+
+    case "UPDATE_NODE_POSITION": {
+      const { nodeId, position } = action.payload;
+      const updatedNodes = state.tree.nodes.map((node) =>
+        node.id === nodeId ? { ...node, position } : node
+      );
+
+      return {
+        ...state,
+        tree: {
+          ...state.tree,
+          nodes: updatedNodes,
+        },
+      };
+    }
+
+    case "SET_LOADING":
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+
+    default:
+      return state;
+  }
+}
+
+const ConversationContext = createContext<{
+  state: ConversationState;
+  dispatch: React.Dispatch<ConversationAction>;
+} | null>(null);
+
+export function ConversationProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(conversationReducer, initialState);
+
+  return (
+    <ConversationContext.Provider value={{ state, dispatch }}>
+      {children}
+    </ConversationContext.Provider>
+  );
+}
+
+export function useConversation() {
+  const context = useContext(ConversationContext);
+  if (!context) {
+    throw new Error(
+      "useConversation must be used within a ConversationProvider"
+    );
+  }
+  return context;
+}
