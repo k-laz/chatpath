@@ -7,6 +7,7 @@ import { ConversationNode } from "@/types/conversation";
 import { MessageBubble } from "./MessageBubble";
 import { useConversationTree } from "@/hooks/useConversationTree";
 import { useBranchContext } from "@/hooks/useBranchContext";
+import { getConversationTitle } from "@/utils";
 
 interface ChatNodeData {
   node: ConversationNode;
@@ -71,25 +72,6 @@ export function ChatNode({
     }
   };
 
-  const contextDisplay =
-    node.context.length > 0 ? (
-      <div className="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-900 rounded mb-2">
-        <div className="font-semibold mb-1">Context:</div>
-        <div className="max-h-20 overflow-y-auto">
-          {node.context.slice(-3).map((ctx: string, idx: number) => (
-            <div key={idx} className="truncate">
-              {ctx}
-            </div>
-          ))}
-          {node.context.length > 3 && (
-            <div className="text-gray-400">
-              ...and {node.context.length - 3} more
-            </div>
-          )}
-        </div>
-      </div>
-    ) : null;
-
   return (
     <>
       <Handle
@@ -106,7 +88,7 @@ export function ChatNode({
         } ${isActive ? "ring-2 ring-blue-300" : ""}`}
       >
         <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 node-drag-handle cursor-move">
             <div className="flex items-center gap-2">
               <div
                 className={`w-3 h-3 rounded-full ${
@@ -114,12 +96,13 @@ export function ChatNode({
                 }`}
               />
               <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                Conversation {node.id.slice(0, 8)}
+                {getConversationTitle(node)}
               </h3>
             </div>
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              onMouseDown={(e) => e.stopPropagation()}
             >
               {isExpanded ? "−" : "+"}
             </button>
@@ -127,11 +110,11 @@ export function ChatNode({
 
           {isExpanded && (
             <>
-              {contextDisplay}
-
               <div
                 ref={messagesRef}
-                className="h-64 overflow-y-auto mb-4 pr-2 custom-scrollbar"
+                className="h-64 overflow-y-auto mb-4 pr-2 custom-scrollbar nowheel nopan cursor-text"
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseMove={(e) => e.stopPropagation()}
               >
                 {node.messages.map((message) => (
                   <MessageBubble
@@ -145,13 +128,21 @@ export function ChatNode({
                 ))}
               </div>
 
-              <div className="flex gap-2">
+              <div
+                className="flex gap-2"
+                onMouseDown={(e) => e.stopPropagation()}
+                onMouseMove={(e) => e.stopPropagation()}
+              >
                 <textarea
                   ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  onFocus={handleFocus}
+                  onKeyDown={handleKeyPress}
+                  onFocus={(e) => {
+                    e.stopPropagation();
+                    handleFocus();
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
                   placeholder={
                     node.messages.length === 2 &&
                     node.messages[0].content.includes("Welcome to ChatPath")
@@ -168,6 +159,7 @@ export function ChatNode({
                 <button
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim()}
+                  onMouseDown={(e) => e.stopPropagation()}
                   className="px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   Send

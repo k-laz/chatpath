@@ -84,9 +84,35 @@ body {
   opacity: 1;
 }
 
+/* Drag handle styles */
+.node-drag-handle {
+  transition: background-color 0.2s ease;
+}
+
+.node-drag-handle:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  border-radius: 6px;
+}
+
+.node-drag-handle:active {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Dark mode drag handle */
+@media (prefers-color-scheme: dark) {
+  .node-drag-handle:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+
+  .node-drag-handle:active {
+    background-color: rgba(59, 130, 246, 0.15);
+  }
+}
+
 /* Animation utilities */
 @keyframes pulse-blue {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -100,7 +126,11 @@ body {
 
 /* Text selection highlight */
 .text-selection-highlight {
-  background: linear-gradient(120deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.3) 100%);
+  background: linear-gradient(
+    120deg,
+    rgba(59, 130, 246, 0.2) 0%,
+    rgba(59, 130, 246, 0.3) 100%
+  );
   border-radius: 2px;
   padding: 1px 2px;
   margin: -1px -2px;

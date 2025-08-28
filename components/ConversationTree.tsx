@@ -41,6 +41,9 @@ export function ConversationTree() {
         position: node.position,
         data: { node },
         draggable: true,
+        // Add selective dragging configuration
+        dragHandle: ".node-drag-handle",
+        selectable: true,
       })),
     [tree.nodes]
   );

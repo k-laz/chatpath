@@ -1,14 +1,33 @@
 # Cursor Rules for Conversational Tree Interface
 
+At the start of each session, read:
+
+1. Any `**/README.md` docs across the project
+2. Any `**/README.*.md` docs across the project
+3. Any `**/CONTRIBUTING.md` files
+4. Any `**/ARCHITECTURE.md` files
+
+Use the information from these files to understand:
+
+- Project structure and conventions
+- Coding standards and best practices
+- Architecture decisions and patterns
+- Setup and development workflows
+
+When providing suggestions or generating code, ensure consistency with the patterns and conventions documented in these files.
+
 ## Development Commands
+
 - Development server: `npm run dev` (Next.js with Turbopack on http://localhost:3000)
 - Build: `npm run build` (production build with Turbopack optimization)
 - Production server: `npm start` (runs after build)
 
 ## Project Context
+
 You are working on a conversational tree interface application - think "Git branching for conversations". Users can select any text portion within chat messages to create visual conversation branches while preserving full context. This creates an interactive node-based graph for knowledge exploration.
 
 ## Core Architecture
+
 - **Framework**: Next.js 15.5.0 with App Router pattern
 - **React**: 19.1.0 with concurrent rendering
 - **Styling**: Tailwind CSS v4 + PostCSS
@@ -16,6 +35,7 @@ You are working on a conversational tree interface application - think "Git bran
 - **Fonts**: Geist Sans/Mono via next/font/google
 
 ## Project Structure
+
 ```
 app/
 ├── layout.tsx          # Root layout with fonts and global styling
@@ -44,6 +64,7 @@ types/
 ```
 
 ## Key Libraries & APIs
+
 - **React Flow**: Canvas-based node visualization
 - **React Context**: Native state management
 - **Framer Motion**: Branch creation animations
@@ -53,6 +74,7 @@ types/
 - **ResizeObserver**: Responsive node sizing
 
 ## Core Data Structure
+
 ```typescript
 interface ConversationNode {
   id: string;
@@ -60,7 +82,7 @@ interface ConversationNode {
   position: { x: number; y: number };
   messages: Message[];
   branches: BranchPoint[];
-  context: string[];     // Inherited conversation history
+  context: string[]; // Inherited conversation history
   createdAt: Date;
   isActive: boolean;
 }
@@ -87,18 +109,21 @@ interface Message {
 ## Implementation Guidelines
 
 ### Text Selection System
+
 - Use native Selection API for precise character offsets
 - Show floating branch button on text selection (Floating UI positioning)
 - Highlight selected text and track for navigation
 - Previously branched text gets blue highlight backgrounds
 
 ### Branch Creation & Navigation
+
 - New branches inherit full conversation history to branching point
 - Show "Continuing from: [selected text]" prefix for context
 - Small indicator dots mark branching points in messages
 - Click highlights to navigate to associated branches
 
 ### Canvas & Performance
+
 - React Flow handles zoom, pan, node positioning
 - Use virtualization for large conversation trees
 - Lazy load messages as nodes come into view
@@ -106,6 +131,7 @@ interface Message {
 - Collapse inactive branches to reduce render overhead
 
 ## Development Best Practices
+
 - Each conversation node = separate React component for optimal re-rendering
 - Manage text selection through React Context + useReducer
 - Handle branch creation via immutable state updates
@@ -115,12 +141,14 @@ interface Message {
 - Follow Next.js App Router conventions with file-based routing
 
 ## Styling Standards
+
 - Tailwind CSS v4 with custom CSS variables for theming
 - Support automatic light/dark mode switching
 - Custom node styling integrates with React Flow
 - Use concurrent React features for smooth canvas interactions
 
 ## Code Quality
+
 - Use TypeScript interfaces for all data structures
 - Implement proper error boundaries for React Flow components
 - Handle edge cases in text selection (empty selections, cross-element selections)
