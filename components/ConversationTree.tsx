@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo, useEffect, useRef } from "react";
 import {
   ReactFlow,
   Node,
@@ -13,10 +13,12 @@ import {
   Controls,
   MiniMap,
   NodeTypes,
+  ReactFlowInstance,
 } from "@xyflow/react";
 import { ChatNode } from "./ChatNode";
 import { useConversationTree } from "@/hooks/useConversationTree";
 import { ConversationNode } from "@/types/conversation";
+import { recalculateTreeLayout } from "@/utils";
 
 import "@xyflow/react/dist/style.css";
 
@@ -25,13 +27,60 @@ const nodeTypes: NodeTypes = {
 };
 
 export function ConversationTree() {
-  const { tree, updateNodePosition, ensureMinimumNodes } =
-    useConversationTree();
+  const {
+    tree,
+    updateNodePosition,
+    ensureMinimumNodes,
+    activeNodeId,
+    shouldZoomToParent,
+    resetZoomFlag,
+  } = useConversationTree();
+  const reactFlowRef = useRef<ReactFlowInstance | null>(null);
+
+  const handleRecalculateLayout = useCallback(() => {
+    if (tree.nodes.length === 0) return;
+
+    try {
+      const newPositions = recalculateTreeLayout(tree.nodes, tree.edges);
+
+      // Update all node positions
+      Object.entries(newPositions).forEach(([nodeId, position]) => {
+        updateNodePosition(nodeId, position);
+      });
+
+      // Fit view to show all nodes
+      setTimeout(() => {
+        reactFlowRef.current?.fitView({ duration: 800, padding: 0.2 });
+      }, 100);
+    } catch (error) {
+      console.error("Failed to recalculate layout:", error);
+    }
+  }, [tree.nodes, tree.edges, updateNodePosition]);
 
   // Ensure there's always at least one node
   useEffect(() => {
     ensureMinimumNodes();
   }, [ensureMinimumNodes]);
+
+  const handleBranchClick = useCallback(
+    (branchPoint: any) => {
+      if (reactFlowRef.current) {
+        // Find the target node
+        const targetNode = tree.nodes.find(
+          (node) => node.id === branchPoint.childNodeId
+        );
+        if (targetNode) {
+          // Zoom to the target node
+          reactFlowRef.current.fitView({
+            nodes: [{ id: targetNode.id, position: targetNode.position }],
+            duration: 800,
+            padding: 0.2,
+          });
+        }
+      }
+    },
+    [tree.nodes]
+  );
 
   const nodes: Node[] = useMemo(
     () =>
@@ -39,13 +88,13 @@ export function ConversationTree() {
         id: node.id,
         type: "chat",
         position: node.position,
-        data: { node },
+        data: { node, onBranchClick: handleBranchClick },
         draggable: true,
         // Add selective dragging configuration
         dragHandle: ".node-drag-handle",
         selectable: true,
       })),
-    [tree.nodes]
+    [tree.nodes, handleBranchClick]
   );
 
   const edges: Edge[] = useMemo(
@@ -54,20 +103,11 @@ export function ConversationTree() {
         id: edge.id,
         source: edge.source,
         target: edge.target,
-        label: edge.label,
         type: "smoothstep",
         animated: true,
         style: {
           strokeWidth: 2,
           stroke: "#3b82f6",
-        },
-        labelStyle: {
-          fontSize: "12px",
-          fontWeight: 500,
-          fill: "#6b7280",
-          backgroundColor: "rgba(255, 255, 255, 0.8)",
-          borderRadius: "4px",
-          padding: "2px 6px",
         },
       })),
     [tree.edges]
@@ -99,8 +139,36 @@ export function ConversationTree() {
     [updateNodePosition]
   );
 
+  // Zoom to active node when it changes (for new nodes or when returning to parent after deletion)
+  useEffect(() => {
+    if (activeNodeId && reactFlowRef.current) {
+      const activeNode = nodes.find((node) => node.id === activeNodeId);
+      if (activeNode) {
+        const nodeData = activeNode.data as { node: ConversationNode };
+        // Zoom for newly created nodes (with just the context message) or when returning to parent after deletion
+        if (nodeData.node.messages.length === 1 || shouldZoomToParent) {
+          setTimeout(() => {
+            reactFlowRef.current?.fitView({
+              nodes: [activeNode],
+              duration: 800,
+              padding: 0.2,
+            });
+            // Reset the zoom flag after using it
+            if (shouldZoomToParent) {
+              resetZoomFlag();
+            }
+          }, 100);
+        }
+      }
+    }
+  }, [activeNodeId, nodes, shouldZoomToParent, resetZoomFlag]);
+
+  const onInit = useCallback((instance: ReactFlowInstance) => {
+    reactFlowRef.current = instance;
+  }, []);
+
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
       <ReactFlow
         nodes={nodesState}
         edges={edgesState}
@@ -108,6 +176,7 @@ export function ConversationTree() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
+        onInit={onInit}
         nodeTypes={nodeTypes}
         fitView
         attributionPosition="bottom-left"
@@ -122,6 +191,31 @@ export function ConversationTree() {
           nodeBorderRadius={8}
         />
       </ReactFlow>
+
+      {/* Custom Layout Button */}
+      {tree.nodes.length > 1 && (
+        <button
+          onClick={handleRecalculateLayout}
+          className="absolute top-4 right-4 z-10 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg shadow-lg transition-colors"
+          title="Recalculate tree layout"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+            <path d="M3 21v-5h5" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

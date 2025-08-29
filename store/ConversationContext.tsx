@@ -9,12 +9,14 @@ import {
   BranchPoint,
 } from "@/types/conversation";
 import { BranchCreationData } from "@/types/selection";
+import { createBranchContextMessage } from "@/utils";
 import { v4 as uuidv4 } from "uuid";
 
 interface ConversationState {
   tree: ConversationTree;
   activeNodeId: string | null;
   isLoading: boolean;
+  shouldZoomToParent: boolean;
 }
 
 type ConversationAction =
@@ -32,7 +34,9 @@ type ConversationAction =
       type: "UPDATE_NODE_POSITION";
       payload: { nodeId: string; position: { x: number; y: number } };
     }
-  | { type: "SET_LOADING"; payload: boolean };
+  | { type: "DELETE_NODE"; payload: { nodeId: string; parentNodeId: string } }
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "RESET_ZOOM_FLAG" };
 
 const initialState: ConversationState = {
   tree: {
@@ -42,6 +46,7 @@ const initialState: ConversationState = {
   },
   activeNodeId: null,
   isLoading: false,
+  shouldZoomToParent: false,
 };
 
 function conversationReducer(
@@ -107,15 +112,24 @@ function conversationReducer(
         parentNode.messages.findIndex((m) => m.id === selection.messageId) + 1
       );
 
+      // Create a context message for the new branch
+      const contextMessage: Message = {
+        id: uuidv4(),
+        content: createBranchContextMessage(selection.text),
+        role: "assistant",
+        timestamp: new Date(),
+        branchPoints: [],
+      };
+
       const newNode: ConversationNode = {
         id: newBranchId,
         parentId: parentNodeId,
         position,
-        messages: [],
+        messages: [contextMessage],
         branches: [],
         context: contextMessages.map((m) => `${m.role}: ${m.content}`),
         createdAt: new Date(),
-        isActive: false,
+        isActive: true, // Set as active immediately for zoom animation
       };
 
       const newEdge: ConversationEdge = {
@@ -171,10 +185,57 @@ function conversationReducer(
       };
     }
 
+    case "DELETE_NODE": {
+      const { nodeId, parentNodeId } = action.payload;
+
+      // Remove the node and its edges
+      const updatedNodes = state.tree.nodes.filter(
+        (node) => node.id !== nodeId
+      );
+      const updatedEdges = state.tree.edges.filter(
+        (edge) => edge.source !== nodeId && edge.target !== nodeId
+      );
+
+      // Remove branch points from parent node
+      const updatedNodesWithBranchRemoval = updatedNodes.map((node) =>
+        node.id === parentNodeId
+          ? {
+              ...node,
+              branches: node.branches.filter(
+                (branch) => branch.childNodeId !== nodeId
+              ),
+              messages: node.messages.map((msg) => ({
+                ...msg,
+                branchPoints: msg.branchPoints.filter(
+                  (bp) => bp.childNodeId !== nodeId
+                ),
+              })),
+            }
+          : node
+      );
+
+      return {
+        ...state,
+        tree: {
+          ...state.tree,
+          nodes: updatedNodesWithBranchRemoval,
+          edges: updatedEdges,
+        },
+        activeNodeId: parentNodeId,
+        shouldZoomToParent: true,
+      };
+    }
+
     case "SET_LOADING":
       return {
         ...state,
         isLoading: action.payload,
+      };
+
+    case "RESET_ZOOM_FLAG":
+      return {
+        ...state,
+        shouldZoomToParent: false,
       };
 
     default:

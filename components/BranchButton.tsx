@@ -1,35 +1,48 @@
-'use client';
+"use client";
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTextSelection } from '@/hooks/useTextSelection';
-import { useConversationTree } from '@/hooks/useConversationTree';
-import { v4 as uuidv4 } from 'uuid';
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { useTextSelection } from "@/hooks/useTextSelection";
+import { useConversationTree } from "@/hooks/useConversationTree";
+import { calculateSmartNodePosition } from "@/utils";
+import { v4 as uuidv4 } from "uuid";
 
 export function BranchButton() {
-  const { currentSelection, branchButtonPosition, clearSelection } = useTextSelection();
-  const { createBranch, getNodeById } = useConversationTree();
+  const { currentSelection, branchButtonPosition, clearSelection } =
+    useTextSelection();
+  const { createBranch, getNodeById, tree } = useConversationTree();
+  const [isCreating, setIsCreating] = useState(false);
 
-  const handleCreateBranch = () => {
-    if (!currentSelection) return;
+  const handleCreateBranch = async () => {
+    if (!currentSelection || isCreating) return;
 
-    const parentNode = getNodeById(currentSelection.nodeId);
-    if (!parentNode) return;
+    setIsCreating(true);
 
-    const newBranchId = uuidv4();
-    
-    const newBranchPosition = {
-      x: parentNode.position.x + 300,
-      y: parentNode.position.y + (parentNode.branches.length * 200),
-    };
+    try {
+      const parentNode = getNodeById(currentSelection.nodeId);
+      if (!parentNode) return;
 
-    createBranch({
-      selection: currentSelection,
-      newBranchId,
-      parentNodeId: currentSelection.nodeId,
-      position: newBranchPosition,
-    });
+      const newBranchId = uuidv4();
 
-    clearSelection();
+      // Use Dagre-based positioning to avoid collisions
+      const newBranchPosition = calculateSmartNodePosition(
+        parentNode.position,
+        tree.nodes,
+        currentSelection.nodeId,
+        tree.edges
+      );
+
+      createBranch({
+        selection: currentSelection,
+        newBranchId,
+        parentNodeId: currentSelection.nodeId,
+        position: newBranchPosition,
+      });
+
+      clearSelection();
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   if (!currentSelection || !branchButtonPosition) {
@@ -45,28 +58,51 @@ export function BranchButton() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleCreateBranch}
-        className="fixed z-50 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full shadow-lg transition-colors"
+        disabled={isCreating}
+        className={`fixed z-50 ${
+          isCreating
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-500 hover:bg-blue-600"
+        } text-white p-2 rounded-full shadow-lg transition-colors`}
         style={{
           left: branchButtonPosition.x,
           top: branchButtonPosition.y,
         }}
-        title="Create branch from selected text"
+        title={
+          isCreating ? "Creating branch..." : "Create branch from selected text"
+        }
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <line x1="6" y1="3" x2="6" y2="15" />
-          <circle cx="18" cy="6" r="3" />
-          <circle cx="6" cy="18" r="3" />
-          <path d="m18 9-2 5-6-2" />
-        </svg>
+        {isCreating ? (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="animate-spin"
+          >
+            <path d="M21 12a9 9 0 11-6.219-8.56" />
+          </svg>
+        ) : (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="6" y1="3" x2="6" y2="15" />
+            <circle cx="18" cy="6" r="3" />
+            <circle cx="6" cy="18" r="3" />
+            <path d="m18 9-2 5-6-2" />
+          </svg>
+        )}
       </motion.button>
     </AnimatePresence>
   );

@@ -11,6 +11,7 @@ import { getConversationTitle } from "@/utils";
 
 interface ChatNodeData {
   node: ConversationNode;
+  onBranchClick?: (branchPoint: any) => void;
 }
 
 export function ChatNode({
@@ -20,13 +21,14 @@ export function ChatNode({
   data: ChatNodeData;
   selected?: boolean;
 }) {
-  const { node } = data;
+  const { node, onBranchClick } = data;
   const [inputValue, setInputValue] = useState("");
   const [isExpanded, setIsExpanded] = useState(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
 
-  const { addMessage, setActiveNode, activeNodeId } = useConversationTree();
+  const { addMessage, setActiveNode, activeNodeId, deleteNode } =
+    useConversationTree();
   const { getBranchingContext } = useBranchContext();
 
   const isActive = activeNodeId === node.id;
@@ -72,6 +74,17 @@ export function ChatNode({
     }
   };
 
+  const handleDelete = () => {
+    if (
+      node.parentId &&
+      confirm(
+        "Are you sure you want to delete this branch? This action cannot be undone."
+      )
+    ) {
+      deleteNode(node.id, node.parentId);
+    }
+  };
+
   return (
     <>
       <Handle
@@ -83,9 +96,16 @@ export function ChatNode({
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
         className={`bg-white dark:bg-gray-800 border-2 rounded-lg shadow-lg min-w-[400px] max-w-[500px] ${
           selected ? "border-blue-500" : "border-gray-200 dark:border-gray-700"
         } ${isActive ? "ring-2 ring-blue-300" : ""}`}
+        style={{
+          boxShadow:
+            isActive && node.messages.length === 1
+              ? "0 0 20px rgba(59, 130, 246, 0.3)"
+              : undefined,
+        }}
       >
         <div className="p-4">
           <div className="flex items-center justify-between mb-3 node-drag-handle cursor-move">
@@ -99,13 +119,34 @@ export function ChatNode({
                 {getConversationTitle(node)}
               </h3>
             </div>
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              {isExpanded ? "−" : "+"}
-            </button>
+            <div className="flex items-center gap-1">
+              {node.parentId && (
+                <button
+                  onClick={handleDelete}
+                  className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  title="Delete branch and return to parent"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {isExpanded ? "−" : "+"}
+              </button>
+            </div>
           </div>
 
           {isExpanded && (
@@ -123,6 +164,7 @@ export function ChatNode({
                     nodeId={node.id}
                     onBranchClick={(branchPoint) => {
                       setActiveNode(branchPoint.childNodeId);
+                      onBranchClick?.(branchPoint);
                     }}
                   />
                 ))}

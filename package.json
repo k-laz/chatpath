@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.16",
+    "@types/dagre": "^0.7.53",
     "@xyflow/react": "^12.8.4",
+    "dagre": "^0.8.5",
     "framer-motion": "^12.23.12",
     "next": "15.5.0",
     "react": "19.1.0",

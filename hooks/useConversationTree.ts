@@ -87,6 +87,17 @@ export function useConversationTree() {
     [dispatch]
   );
 
+  const deleteNode = useCallback(
+    (nodeId: string, parentNodeId: string) => {
+      dispatch({ type: "DELETE_NODE", payload: { nodeId, parentNodeId } });
+    },
+    [dispatch]
+  );
+
+  const resetZoomFlag = useCallback(() => {
+    dispatch({ type: "RESET_ZOOM_FLAG" });
+  }, [dispatch]);
+
   const getNodeById = useCallback(
     (nodeId: string): ConversationNode | undefined => {
       return state.tree.nodes.find((node) => node.id === nodeId);
@@ -163,10 +174,13 @@ export function useConversationTree() {
     tree: state.tree,
     activeNodeId: state.activeNodeId,
     isLoading: state.isLoading,
+    shouldZoomToParent: state.shouldZoomToParent,
     addMessage,
     createBranch,
     setActiveNode,
     updateNodePosition,
+    deleteNode,
+    resetZoomFlag,
     getNodeById,
     getActiveNode,
     initializeTree,
