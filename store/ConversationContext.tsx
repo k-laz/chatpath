@@ -9,7 +9,11 @@ import {
   BranchPoint,
 } from "@/types/conversation";
 import { BranchCreationData } from "@/types/selection";
-import { createBranchContextMessage } from "@/utils";
+import {
+  createBranchContextMessage,
+  getEdgeHandles,
+  generateConversationSummary,
+} from "@/utils";
 import { v4 as uuidv4 } from "uuid";
 
 interface ConversationState {
@@ -82,11 +86,28 @@ function conversationReducer(
           : node
       );
 
+      // Update edge labels for edges connected to this node
+      const updatedEdges = state.tree.edges.map((edge) => {
+        if (edge.target === nodeId) {
+          // Find the target node to get its messages
+          const targetNode = updatedNodes.find((node) => node.id === nodeId);
+          if (targetNode) {
+            const summary = generateConversationSummary(targetNode.messages);
+            return {
+              ...edge,
+              label: summary,
+            };
+          }
+        }
+        return edge;
+      });
+
       return {
         ...state,
         tree: {
           ...state.tree,
           nodes: updatedNodes,
+          edges: updatedEdges,
         },
       };
     }
@@ -132,13 +153,19 @@ function conversationReducer(
         isActive: true, // Set as active immediately for zoom animation
       };
 
+      // Calculate appropriate edge handles based on node positions
+      const { sourceHandle, targetHandle } = getEdgeHandles(
+        parentNode.position,
+        position
+      );
+
       const newEdge: ConversationEdge = {
         id: `edge-${parentNodeId}-${newBranchId}`,
         source: parentNodeId,
         target: newBranchId,
-        label:
-          selection.text.slice(0, 50) +
-          (selection.text.length > 50 ? "..." : ""),
+        sourceHandle,
+        targetHandle,
+        label: generateConversationSummary([contextMessage]),
         data: {
           selectedText: selection.text,
           branchPoint,

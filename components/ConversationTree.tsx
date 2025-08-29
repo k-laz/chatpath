@@ -16,6 +16,7 @@ import {
   ReactFlowInstance,
 } from "@xyflow/react";
 import { ChatNode } from "./ChatNode";
+import { CustomEdge } from "./CustomEdge";
 import { useConversationTree } from "@/hooks/useConversationTree";
 import { ConversationNode } from "@/types/conversation";
 import { recalculateTreeLayout } from "@/utils";
@@ -24,6 +25,10 @@ import "@xyflow/react/dist/style.css";
 
 const nodeTypes: NodeTypes = {
   chat: ChatNode,
+};
+
+const edgeTypes = {
+  custom: CustomEdge,
 };
 
 export function ConversationTree() {
@@ -103,11 +108,17 @@ export function ConversationTree() {
         id: edge.id,
         source: edge.source,
         target: edge.target,
-        type: "smoothstep",
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+        type: "custom",
         animated: true,
         style: {
           strokeWidth: 2,
           stroke: "#3b82f6",
+        },
+        data: {
+          label: edge.label,
+          selectedText: edge.data?.selectedText,
         },
       })),
     [tree.edges]
@@ -178,6 +189,7 @@ export function ConversationTree() {
         onNodeDragStop={onNodeDragStop}
         onInit={onInit}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         attributionPosition="bottom-left"
         className="bg-gray-50 dark:bg-gray-900"

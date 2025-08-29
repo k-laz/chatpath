@@ -87,10 +87,34 @@ export function ChatNode({
 
   return (
     <>
+      {/* Target handles for incoming connections */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        className="!bg-blue-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        style={{ zIndex: 10 }}
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        id="right"
+        className="!bg-blue-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        style={{ zIndex: 10 }}
+      />
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        id="bottom"
+        className="!bg-blue-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        style={{ zIndex: 10 }}
+      />
       <Handle
         type="target"
         position={Position.Left}
-        className="!bg-blue-500 !w-3 !h-3"
+        id="left"
+        className="!bg-blue-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        style={{ zIndex: 10 }}
       />
 
       <motion.div
@@ -212,10 +236,34 @@ export function ChatNode({
         </div>
       </motion.div>
 
+      {/* Source handles for outgoing connections */}
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="top"
+        className="!bg-green-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        style={{ zIndex: 10 }}
+      />
       <Handle
         type="source"
         position={Position.Right}
-        className="!bg-blue-500 !w-3 !h-3"
+        id="right"
+        className="!bg-green-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        style={{ zIndex: 10 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        className="!bg-green-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        style={{ zIndex: 10 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        id="left"
+        className="!bg-green-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        style={{ zIndex: 10 }}
       />
     </>
   );
