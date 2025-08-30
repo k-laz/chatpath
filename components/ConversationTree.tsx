@@ -39,6 +39,9 @@ export function ConversationTree() {
     activeNodeId,
     shouldZoomToParent,
     resetZoomFlag,
+    setActiveNode,
+    zoomToNodeId,
+    resetZoomToNode,
   } = useConversationTree();
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
 
@@ -55,7 +58,7 @@ export function ConversationTree() {
 
       // Fit view to show all nodes
       setTimeout(() => {
-        reactFlowRef.current?.fitView({ duration: 800, padding: 0.2 });
+        reactFlowRef.current?.fitView({ duration: 800, padding: 0.8 });
       }, 100);
     } catch (error) {
       console.error("Failed to recalculate layout:", error);
@@ -79,7 +82,7 @@ export function ConversationTree() {
           reactFlowRef.current.fitView({
             nodes: [{ id: targetNode.id, position: targetNode.position }],
             duration: 800,
-            padding: 0.2,
+            padding: 0.8,
           });
         }
       }
@@ -150,29 +153,125 @@ export function ConversationTree() {
     [updateNodePosition]
   );
 
+  const onNodeClick = useCallback(
+    (event: any, node: Node) => {
+      // Don't zoom if the click was on an interactive element (input, button, etc.)
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "BUTTON" ||
+        target.closest("button") ||
+        target.closest("input") ||
+        target.closest("textarea") ||
+        target.closest(".node-drag-handle")
+      ) {
+        // Still set as active but don't zoom
+        setActiveNode(node.id);
+        return;
+      }
+
+      // Set the clicked node as active
+      setActiveNode(node.id);
+
+      if (reactFlowRef.current) {
+        // Zoom to the clicked node with smooth animation
+        setTimeout(() => {
+          reactFlowRef.current?.fitView({
+            nodes: [node],
+            duration: 600,
+            padding: 0.8,
+          });
+        }, 50);
+      }
+    },
+    [setActiveNode]
+  );
+
   // Zoom to active node when it changes (for new nodes or when returning to parent after deletion)
   useEffect(() => {
+    console.log("Zoom useEffect triggered:", {
+      activeNodeId,
+      shouldZoomToParent,
+      zoomToNodeId,
+      nodesLength: nodesState.length,
+    });
+
+    // Log all available nodes for debugging
+    console.log(
+      "Available nodes:",
+      nodesState.map((node) => ({
+        id: node.id,
+        position: node.position,
+        title:
+          (node.data as any)?.node?.messages[0]?.content?.substring(0, 30) ||
+          "No title",
+      }))
+    );
+
+    // If we have a specific node to zoom to (from deletion), use that
+    if (zoomToNodeId && reactFlowRef.current) {
+      const targetNode = nodesState.find((node) => node.id === zoomToNodeId);
+      if (targetNode) {
+        console.log("Zooming to specific node (from deletion):", {
+          id: targetNode.id,
+          position: targetNode.position,
+          title:
+            (targetNode.data as any)?.node?.messages[0]?.content?.substring(
+              0,
+              50
+            ) || "No title",
+        });
+        setTimeout(() => {
+          reactFlowRef.current?.fitView({
+            nodes: [targetNode],
+            duration: 800,
+            padding: 0.8,
+          });
+          // Reset the zoom flags after using it
+          resetZoomFlag();
+          resetZoomToNode();
+        }, 200);
+        return;
+      }
+    }
+
+    // Fallback to original logic for other cases
     if (activeNodeId && reactFlowRef.current) {
-      const activeNode = nodes.find((node) => node.id === activeNodeId);
+      const activeNode = nodesState.find((node) => node.id === activeNodeId);
       if (activeNode) {
         const nodeData = activeNode.data as { node: ConversationNode };
-        // Zoom for newly created nodes (with just the context message) or when returning to parent after deletion
-        if (nodeData.node.messages.length === 1 || shouldZoomToParent) {
+        console.log("Active node found:", {
+          nodeId: activeNode.id,
+          messagesLength: nodeData.node.messages.length,
+        });
+
+        // Zoom for newly created nodes with just the context message
+        if (nodeData.node.messages.length === 1) {
+          console.log("New node with 1 message - zooming");
           setTimeout(() => {
             reactFlowRef.current?.fitView({
               nodes: [activeNode],
               duration: 800,
-              padding: 0.2,
+              padding: 0.8,
             });
-            // Reset the zoom flag after using it
-            if (shouldZoomToParent) {
-              resetZoomFlag();
-            }
           }, 100);
+        } else {
+          console.log("No zoom condition met");
         }
+      } else {
+        console.log("Active node not found in nodesState array");
       }
+    } else {
+      console.log("Missing activeNodeId or reactFlowRef");
     }
-  }, [activeNodeId, nodes, shouldZoomToParent, resetZoomFlag]);
+  }, [
+    activeNodeId,
+    zoomToNodeId,
+    nodesState,
+    shouldZoomToParent,
+    resetZoomFlag,
+  ]);
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
     reactFlowRef.current = instance;
@@ -187,6 +286,7 @@ export function ConversationTree() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
+        onNodeClick={onNodeClick}
         onInit={onInit}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}

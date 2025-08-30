@@ -41,7 +41,7 @@ export function CustomEdge({
         >
           {data?.label && (
             <div className="bg-white dark:bg-gray-800 px-2 py-1 rounded text-xs border shadow-sm font-medium text-gray-700 dark:text-gray-300">
-              {data.label}
+              {String(data.label)}
             </div>
           )}
         </div>

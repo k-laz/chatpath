@@ -73,19 +73,33 @@ function findBestAvailablePosition(
   };
 }
 
-// Generate conversation title based on the first user message
+// Generate conversation title based on the conversation context and content
 export function getConversationTitle(node: ConversationNode): string {
   if (node.messages.length === 0) return "New Branch";
 
-  const firstUserMessage = node.messages.find((msg) => msg.role === "user");
-  if (firstUserMessage) {
-    const content = firstUserMessage.content.trim();
-    return content.length > 50 ? content.slice(0, 50) + "..." : content;
+  // For branches with inherited context, create a more descriptive title
+  if (node.context && node.context.length > 0) {
+    // Check if this is a new branch with just the context message
+    if (
+      node.messages.length === 1 &&
+      node.messages[0].content.includes("🌿 **Continuing from:**")
+    ) {
+      const match = node.messages[0].content.match(/"([^"]+)"/);
+      if (match) {
+        const selectedText = match[1];
+        const words = selectedText.split(/\s+/).slice(0, 2).join(" ");
+        return words.length > 12 ? words.substring(0, 12) + "..." : words;
+      }
+    }
+
+    // For branches with actual conversation, use the summary
+    if (node.messages.length > 1) {
+      return generateConversationSummary(node.messages);
+    }
   }
 
-  const firstMessage = node.messages[0];
-  const content = firstMessage.content.trim();
-  return content.length > 50 ? content.slice(0, 50) + "..." : content;
+  // Use the existing generateConversationSummary function for intelligent context-based titles
+  return generateConversationSummary(node.messages);
 }
 
 /**
@@ -305,13 +319,96 @@ export function generateConversationSummary(messages: Message[]): string {
     return "Branch";
   }
 
-  // Get the most recent user messages (up to 3)
+  // For branches with context, include the branching context in the summary
+  if (
+    messages.length === 1 &&
+    messages[0].content.includes("🌿 **Continuing from:**")
+  ) {
+    const match = messages[0].content.match(/"([^"]+)"/);
+    if (match) {
+      const selectedText = match[1];
+      const words = selectedText.split(/\s+/).slice(0, 2).join(" ");
+      return words.length > 12 ? words.substring(0, 12) + "..." : words;
+    }
+  }
+
+  // For very short conversations (2-3 messages), focus on the main topic
+  if (messages.length <= 3) {
+    const userMessages = messages
+      .filter((msg) => msg.role === "user")
+      .map((msg) => msg.content.toLowerCase());
+
+    if (userMessages.length > 0) {
+      const allText = userMessages.join(" ");
+      const words = allText.split(/\s+/).filter((word) => word.length > 3);
+      const meaningfulWords = words.filter(
+        (word) =>
+          ![
+            "what",
+            "how",
+            "why",
+            "when",
+            "where",
+            "this",
+            "that",
+            "with",
+            "from",
+            "about",
+            "have",
+            "will",
+            "would",
+            "could",
+            "should",
+            "that's",
+            "interesting",
+            "fascinating",
+            "great",
+            "point",
+            "think",
+            "consider",
+            "explore",
+            "discuss",
+            "talk",
+            "tell",
+            "more",
+            "further",
+            "deeper",
+            "aspects",
+            "angles",
+            "implications",
+            "conclusion",
+            "perspective",
+            "question",
+            "compelling",
+            "relates",
+            "earlier",
+            "main",
+            "different",
+            "led",
+          ].includes(word)
+      );
+
+      if (meaningfulWords.length >= 1) {
+        return meaningfulWords.slice(0, 2).join(" ").substring(0, 15);
+      }
+    }
+  }
+
+  // Get the most recent user messages (up to 3) and recent assistant messages
   const userMessages = messages
     .filter((msg) => msg.role === "user")
     .slice(-3)
     .map((msg) => msg.content.toLowerCase());
 
+  const assistantMessages = messages
+    .filter((msg) => msg.role === "assistant")
+    .slice(-2)
+    .map((msg) => msg.content.toLowerCase());
+
   if (userMessages.length === 0) return "Assistant chat";
+
+  // Combine user and assistant messages for better context
+  const allRecentMessages = [...userMessages, ...assistantMessages];
 
   // Common topic keywords to look for
   const topicKeywords = {
@@ -333,6 +430,17 @@ export function generateConversationSummary(messages: Message[]): string {
       "javascript",
       "python",
       "node",
+      "typescript",
+      "html",
+      "css",
+      "frontend",
+      "backend",
+      "server",
+      "client",
+      "development",
+      "debugging",
+      "testing",
+      "deployment",
     ],
     science: [
       "science",
@@ -360,6 +468,18 @@ export function generateConversationSummary(messages: Message[]): string {
       "branding",
       "visual",
       "aesthetic",
+      "ui",
+      "ux",
+      "user interface",
+      "user experience",
+      "graphic",
+      "illustration",
+      "photography",
+      "video",
+      "animation",
+      "music",
+      "content",
+      "copywriting",
     ],
     business: [
       "business",
@@ -416,7 +536,7 @@ export function generateConversationSummary(messages: Message[]): string {
   };
 
   // Check for topic matches
-  const allText = userMessages.join(" ");
+  const allText = allRecentMessages.join(" ");
   for (const [topic, keywords] of Object.entries(topicKeywords)) {
     if (keywords.some((keyword) => allText.includes(keyword))) {
       return topic.charAt(0).toUpperCase() + topic.slice(1);
@@ -443,6 +563,32 @@ export function generateConversationSummary(messages: Message[]): string {
         "would",
         "could",
         "should",
+        "that's",
+        "interesting",
+        "fascinating",
+        "great",
+        "point",
+        "think",
+        "consider",
+        "explore",
+        "discuss",
+        "talk",
+        "tell",
+        "more",
+        "further",
+        "deeper",
+        "aspects",
+        "angles",
+        "implications",
+        "conclusion",
+        "perspective",
+        "question",
+        "compelling",
+        "relates",
+        "earlier",
+        "main",
+        "different",
+        "led",
       ].includes(word)
   );
 
@@ -450,13 +596,17 @@ export function generateConversationSummary(messages: Message[]): string {
     return commonWords.slice(0, 2).join(" ").substring(0, 15);
   }
 
-  // Fallback to first few words of the first message
-  const firstMessage = userMessages[0];
-  const firstWords = firstMessage.split(/\s+/).slice(0, 3).join(" ");
-  if (firstWords.length > 15) {
-    return firstWords.substring(0, 15) + "...";
+  // Fallback to first few words of the first user message
+  const firstUserMessage = userMessages[0];
+  if (firstUserMessage) {
+    const firstWords = firstUserMessage.split(/\s+/).slice(0, 3).join(" ");
+    if (firstWords.length > 15) {
+      return firstWords.substring(0, 15) + "...";
+    }
+    return firstWords;
   }
-  return firstWords || "Chat";
+
+  return "Chat";
 }
 
 /**

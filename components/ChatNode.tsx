@@ -27,8 +27,13 @@ export function ChatNode({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
 
-  const { addMessage, setActiveNode, activeNodeId, deleteNode } =
-    useConversationTree();
+  const {
+    addMessage,
+    setActiveNode,
+    activeNodeId,
+    deleteNode,
+    navigateToParent,
+  } = useConversationTree();
   const { getBranchingContext } = useBranchContext();
 
   const isActive = activeNodeId === node.id;
@@ -119,8 +124,23 @@ export function ChatNode({
 
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          // Add a subtle scale animation when becoming active
+          ...(isActive && { scale: 1.02 }),
+        }}
+        transition={{
+          duration: 0.3,
+          // Add a spring animation for the active state
+          ...(isActive && {
+            scale: {
+              type: "spring",
+              stiffness: 300,
+              damping: 20,
+            },
+          }),
+        }}
         className={`bg-white dark:bg-gray-800 border-2 rounded-lg shadow-lg min-w-[400px] max-w-[500px] ${
           selected ? "border-blue-500" : "border-gray-200 dark:border-gray-700"
         } ${isActive ? "ring-2 ring-blue-300" : ""}`}
@@ -145,23 +165,42 @@ export function ChatNode({
             </div>
             <div className="flex items-center gap-1">
               {node.parentId && (
-                <button
-                  onClick={handleDelete}
-                  className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  title="Delete branch and return to parent"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
+                <>
+                  <button
+                    onClick={() => navigateToParent(node.id)}
+                    className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    title="Go back to parent node"
                   >
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </button>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    title="Delete branch and return to parent"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </>
               )}
               <button
                 onClick={() => setIsExpanded(!isExpanded)}

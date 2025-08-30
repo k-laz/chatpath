@@ -94,8 +94,19 @@ export function useConversationTree() {
     [dispatch]
   );
 
+  const navigateToParent = useCallback(
+    (nodeId: string) => {
+      dispatch({ type: "NAVIGATE_TO_PARENT", payload: { nodeId } });
+    },
+    [dispatch]
+  );
+
   const resetZoomFlag = useCallback(() => {
     dispatch({ type: "RESET_ZOOM_FLAG" });
+  }, [dispatch]);
+
+  const resetZoomToNode = useCallback(() => {
+    dispatch({ type: "RESET_ZOOM_TO_NODE" });
   }, [dispatch]);
 
   const getNodeById = useCallback(
@@ -175,12 +186,15 @@ export function useConversationTree() {
     activeNodeId: state.activeNodeId,
     isLoading: state.isLoading,
     shouldZoomToParent: state.shouldZoomToParent,
+    zoomToNodeId: state.zoomToNodeId,
     addMessage,
     createBranch,
     setActiveNode,
     updateNodePosition,
     deleteNode,
+    navigateToParent,
     resetZoomFlag,
+    resetZoomToNode,
     getNodeById,
     getActiveNode,
     initializeTree,
