@@ -92,33 +92,33 @@ export function ChatNode({
 
   return (
     <>
-      {/* Target handles for incoming connections */}
+      {/* Target handles for incoming connections - hidden but functional */}
       <Handle
         type="target"
         position={Position.Top}
         id="top"
-        className="!bg-blue-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        className="!w-0 !h-0 !bg-transparent !border-0"
         style={{ zIndex: 10 }}
       />
       <Handle
         type="target"
         position={Position.Right}
         id="right"
-        className="!bg-blue-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        className="!w-0 !h-0 !bg-transparent !border-0"
         style={{ zIndex: 10 }}
       />
       <Handle
         type="target"
         position={Position.Bottom}
         id="bottom"
-        className="!bg-blue-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        className="!w-0 !h-0 !bg-transparent !border-0"
         style={{ zIndex: 10 }}
       />
       <Handle
         type="target"
         position={Position.Left}
         id="left"
-        className="!bg-blue-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        className="!w-0 !h-0 !bg-transparent !border-0"
         style={{ zIndex: 10 }}
       />
 
@@ -284,33 +284,33 @@ export function ChatNode({
         </div>
       </motion.div>
 
-      {/* Source handles for outgoing connections */}
+      {/* Source handles for outgoing connections - hidden but functional */}
       <Handle
         type="source"
         position={Position.Top}
         id="top"
-        className="!bg-green-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        className="!w-0 !h-0 !bg-transparent !border-0"
         style={{ zIndex: 10 }}
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right"
-        className="!bg-green-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        className="!w-0 !h-0 !bg-transparent !border-0"
         style={{ zIndex: 10 }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="!bg-green-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        className="!w-0 !h-0 !bg-transparent !border-0"
         style={{ zIndex: 10 }}
       />
       <Handle
         type="source"
         position={Position.Left}
         id="left"
-        className="!bg-green-500 !w-4 !h-4 !border-2 !border-white dark:!border-gray-800"
+        className="!w-0 !h-0 !bg-transparent !border-0"
         style={{ zIndex: 10 }}
       />
     </>
