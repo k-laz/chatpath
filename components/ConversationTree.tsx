@@ -40,8 +40,6 @@ export function ConversationTree() {
     shouldZoomToParent,
     resetZoomFlag,
     setActiveNode,
-    zoomToNodeId,
-    resetZoomToNode,
   } = useConversationTree();
   const reactFlowRef = useRef<ReactFlowInstance | null>(null);
 
@@ -193,7 +191,6 @@ export function ConversationTree() {
     console.log("Zoom useEffect triggered:", {
       activeNodeId,
       shouldZoomToParent,
-      zoomToNodeId,
       nodesLength: nodesState.length,
     });
 
@@ -209,11 +206,11 @@ export function ConversationTree() {
       }))
     );
 
-    // If we have a specific node to zoom to (from deletion), use that
-    if (zoomToNodeId && reactFlowRef.current) {
-      const targetNode = nodesState.find((node) => node.id === zoomToNodeId);
+    // If we should zoom to parent (from deletion or back button), use activeNodeId
+    if (shouldZoomToParent && activeNodeId && reactFlowRef.current) {
+      const targetNode = nodesState.find((node) => node.id === activeNodeId);
       if (targetNode) {
-        console.log("Zooming to specific node (from deletion):", {
+        console.log("Zooming to parent node:", {
           id: targetNode.id,
           position: targetNode.position,
           title:
@@ -228,9 +225,8 @@ export function ConversationTree() {
             duration: 800,
             padding: 0.8,
           });
-          // Reset the zoom flags after using it
+          // Reset the zoom flag after using it
           resetZoomFlag();
-          resetZoomToNode();
         }, 200);
         return;
       }
@@ -265,13 +261,7 @@ export function ConversationTree() {
     } else {
       console.log("Missing activeNodeId or reactFlowRef");
     }
-  }, [
-    activeNodeId,
-    zoomToNodeId,
-    nodesState,
-    shouldZoomToParent,
-    resetZoomFlag,
-  ]);
+  }, [activeNodeId, nodesState, shouldZoomToParent, resetZoomFlag]);
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
     reactFlowRef.current = instance;

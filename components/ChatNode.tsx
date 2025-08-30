@@ -167,8 +167,17 @@ export function ChatNode({
               {node.parentId && (
                 <>
                   <button
-                    onClick={() => navigateToParent(node.id)}
-                    className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log(
+                        "Back button clicked for node:",
+                        node.id,
+                        "parent:",
+                        node.parentId
+                      );
+                      navigateToParent(node.id);
+                    }}
+                    className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:outline-2 hover:outline hover:outline-blue-300 dark:hover:outline-blue-600"
                     onMouseDown={(e) => e.stopPropagation()}
                     title="Go back to parent node"
                   >
@@ -185,7 +194,7 @@ export function ChatNode({
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded"
+                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 hover:outline-2 hover:outline hover:outline-red-300 dark:hover:outline-red-600"
                     onMouseDown={(e) => e.stopPropagation()}
                     title="Delete branch and return to parent"
                   >
@@ -204,7 +213,7 @@ export function ChatNode({
               )}
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:outline-2 hover:outline hover:outline-gray-300 dark:hover:outline-gray-600"
                 onMouseDown={(e) => e.stopPropagation()}
               >
                 {isExpanded ? "−" : "+"}
@@ -265,7 +274,7 @@ export function ChatNode({
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim()}
                   onMouseDown={(e) => e.stopPropagation()}
-                  className="px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 hover:outline-2 hover:outline hover:outline-blue-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   Send
                 </button>

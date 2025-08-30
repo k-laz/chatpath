@@ -21,7 +21,6 @@ interface ConversationState {
   activeNodeId: string | null;
   isLoading: boolean;
   shouldZoomToParent: boolean;
-  zoomToNodeId: string | null;
 }
 
 type ConversationAction =
@@ -42,8 +41,7 @@ type ConversationAction =
   | { type: "DELETE_NODE"; payload: { nodeId: string; parentNodeId: string } }
   | { type: "NAVIGATE_TO_PARENT"; payload: { nodeId: string } }
   | { type: "SET_LOADING"; payload: boolean }
-  | { type: "RESET_ZOOM_FLAG" }
-  | { type: "RESET_ZOOM_TO_NODE" };
+  | { type: "RESET_ZOOM_FLAG" };
 
 const initialState: ConversationState = {
   tree: {
@@ -54,7 +52,6 @@ const initialState: ConversationState = {
   activeNodeId: null,
   isLoading: false,
   shouldZoomToParent: false,
-  zoomToNodeId: null,
 };
 
 function conversationReducer(
@@ -255,7 +252,6 @@ function conversationReducer(
         },
         activeNodeId: parentNodeId,
         shouldZoomToParent: true,
-        zoomToNodeId: parentNodeId,
       };
 
       console.log("DELETE_NODE new state:", {
@@ -268,17 +264,27 @@ function conversationReducer(
 
     case "NAVIGATE_TO_PARENT": {
       const { nodeId } = action.payload;
+      console.log("NAVIGATE_TO_PARENT action:", { nodeId });
+
       const currentNode = state.tree.nodes.find((node) => node.id === nodeId);
 
       if (!currentNode || !currentNode.parentId) {
+        console.log("No parent found for node:", nodeId);
         return state;
       }
 
-      return {
+      const newState = {
         ...state,
         activeNodeId: currentNode.parentId,
         shouldZoomToParent: true,
       };
+
+      console.log("NAVIGATE_TO_PARENT new state:", {
+        activeNodeId: newState.activeNodeId,
+        shouldZoomToParent: newState.shouldZoomToParent,
+      });
+
+      return newState;
     }
 
     case "SET_LOADING":
@@ -291,12 +297,6 @@ function conversationReducer(
       return {
         ...state,
         shouldZoomToParent: false,
-      };
-
-    case "RESET_ZOOM_TO_NODE":
-      return {
-        ...state,
-        zoomToNodeId: null,
       };
 
     default:
